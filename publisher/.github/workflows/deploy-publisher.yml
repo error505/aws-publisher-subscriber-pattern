@@ -1,0 +1,29 @@
+name: Deploy Publisher AWS Lambda
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-publisher:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Deploy Publisher Lambda Function
+      run: |
+        zip publisher-lambda.zip lambda_function.py
+        aws lambda update-function-code \
+          --function-name PublisherFunction \
+          --zip-file fileb://publisher-lambda.zip

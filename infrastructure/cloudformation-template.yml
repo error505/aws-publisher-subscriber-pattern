@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Publisher-Subscriber Pattern Infrastructure on AWS
+
+Resources:
+  # SNS Topic
+  SNSTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      TopicName: MySNSTopic
+
+  # SQS Queue 1
+  SQSQueue1:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      QueueName: MySQSQueue1
+
+  # SQS Queue 2
+  SQSQueue2:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      QueueName: MySQSQueue2
+
+  # SNS Subscription to SQS Queue 1
+  SNSSubscription1:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: !Ref SNSTopic
+      Protocol: sqs
+      Endpoint: !GetAtt SQSQueue1.Arn
+
+  # SNS Subscription to SQS Queue 2
+  SNSSubscription2:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: !Ref SNSTopic
+      Protocol: sqs
+      Endpoint: !GetAtt SQSQueue2.Arn
+
+  # Lambda Function for Publisher
+  PublisherLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: PublisherFunction
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: <Your S3 Bucket>
+        S3Key: publisher-lambda.zip
+      Runtime: python3.9
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref SNSTopic
+
+  # Lambda Function for Subscriber 1
+  Subscriber1Lambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: Subscriber1Function
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: <Your S3 Bucket>
+        S3Key: subscriber1-lambda.zip
+      Runtime: python3.9
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: MyDynamoDBTable
+
+  # Lambda Function for Subscriber 2
+  Subscriber2Lambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: Subscriber2Function
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: <Your S3 Bucket>
+        S3Key: subscriber2-lambda.zip
+      Runtime: python3.9
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: MyS3Bucket
+
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: LambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaSQSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - dynamodb:PutItem
+                  - s3:PutObject
+                Resource: "*"
+
+  # DynamoDB Table for Subscriber 1
+  DynamoDBTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: MyDynamoDBTable
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  # S3 Bucket for Subscriber 2
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: MyS3Bucket
+
+Outputs:
+  SNSTopicArn:
+    Description: SNS Topic ARN
+    Value: !Ref SNSTopic
+
+  SQSQueue1URL:
+    Description: URL of SQS Queue 1
+    Value: !Ref SQSQueue1
+
+  SQSQueue2URL:
+    Description: URL of SQS Queue 2
+    Value: !Ref SQSQueue2
+
+  DynamoDBTableName:
+    Description: DynamoDB Table Name
+    Value: !Ref DynamoDBTable
+
+  S3BucketName:
+    Description: S3 Bucket Name
+    Value: !Ref S3Bucket

@@ -1,6 +1,7 @@
 # AWS Publisher-Subscriber Pattern Implementation
 
 This repository demonstrates how to implement the **Publisher-Subscriber Pattern** using AWS services, including AWS SNS, SQS, Lambda, DynamoDB, and S3. The project includes CloudFormation templates for infrastructure deployment, Python code for the publisher and subscribers, and GitHub Actions workflows for continuous integration and deployment.
+![image](https://github.com/user-attachments/assets/582edba5-1b9e-43a4-8861-86057808573a)
 
 ## 🏗️ Architecture Overview
 
